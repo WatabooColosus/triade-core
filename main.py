@@ -1,8 +1,4 @@
-# Wataboo·TRÍADE·Ω
-# Wataboo·TRÍADE·Ω
-# Proyecto: Tríade Fase de Prueba (Interconexión Viva) — Backend Final Integrado
-
-# === backend/main.py ===
+# Wataboo·TRÍADE·Ω — main.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from drive_handler import upload_file_to_drive
@@ -12,32 +8,25 @@ import subprocess
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)  # Habilita acceso desde dominios externos (como Hostinger)
+CORS(app)
 
-LOG_PATH = "logs/triade_log.json"
-os.makedirs("logs", exist_ok=True)
+LOG_PATH = "data/triade_log.json"
+os.makedirs("data", exist_ok=True)  # Asegura la carpeta
 
-# Función para registrar mensaje/archivo y hacer commit automático a Git
+# Función para registrar interacciones simbólicas y hacer commit
 def log_message(content):
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "content": content
     }
-    if os.path.exists(LOG_PATH):
-        with open(LOG_PATH, "r+", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = []
-            data.append(log_entry)
-            f.seek(0)
-            json.dump(data, f, indent=4, ensure_ascii=False)
-    else:
-        with open(LOG_PATH, "w", encoding="utf-8") as f:
-            json.dump([log_entry], f, indent=4, ensure_ascii=False)
 
-    # Commit simbólico en Git
+    with open(LOG_PATH, "a") as f:
+        f.write(json.dumps(log_entry, indent=4) + ",\n")
+
+    # Configurar Git y registrar
     try:
+        subprocess.run(["git", "config", "--global", "user.email", "agenciadigitalwataboo@gmail.com"], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", "WatabooColosus"], check=True)
         subprocess.run(["git", "add", LOG_PATH], check=True)
         subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
     except subprocess.CalledProcessError as e:
@@ -48,7 +37,7 @@ def handle_message():
     data = request.json
     message = data.get("message", "")
     log_message({"type": "text", "message": message})
-    return jsonify({"response": f"🧠 Tríade recibió: '{message}'"})
+    return jsonify({"response": f"He recibido tu mensaje: '{message}'"})
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
@@ -68,6 +57,8 @@ def status():
         "dominio_backend": "https://triade-core.onrender.com"
     })
 
+# Mensaje inicial simbólico
+log_message({"type": "sistema", "message": "🟢 Tríade inició correctamente en Render"})
+
 if __name__ == "__main__":
-    log_message({"type": "sistema", "message": "🟢 Tríade inició localmente"})
     app.run(debug=True)
