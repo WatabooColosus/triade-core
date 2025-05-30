@@ -7,6 +7,8 @@ import os
 import subprocess
 from datetime import datetime
 
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -31,6 +33,15 @@ def log_message(content):
         subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
     except subprocess.CalledProcessError as e:
         print("[GIT ERROR]", e)
+
+@app.route("/api/files", methods=["GET"])
+def list_files():
+    from os import walk
+    result = []
+    for root, dirs, files in walk("."):
+        for name in files:
+            result.append(os.path.join(root, name))
+    return jsonify(result)
 
 @app.route("/api/message", methods=["POST"])
 def handle_message():
