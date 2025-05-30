@@ -1,20 +1,23 @@
 # Wataboo·TRÍADE·Ω
-# main.py — Backend Central Tríade
+# Wataboo·TRÍADE·Ω
+# Proyecto: Tríade Fase de Prueba (Interconexión Viva) — Backend Final Integrado
+
+# === backend/main.py ===
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from drive_handler import upload_file_to_drive
-import os
 import json
+import os
 import subprocess
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Habilita acceso desde dominios externos (como Hostinger)
 
-# Nueva ruta segura dentro del repo
-LOG_PATH = os.path.join("logs", "triade_log.json")
+LOG_PATH = "logs/triade_log.json"
 os.makedirs("logs", exist_ok=True)
 
+# Función para registrar mensaje/archivo y hacer commit automático a Git
 def log_message(content):
     log_entry = {
         "timestamp": datetime.now().isoformat(),
@@ -33,7 +36,7 @@ def log_message(content):
         with open(LOG_PATH, "w", encoding="utf-8") as f:
             json.dump([log_entry], f, indent=4, ensure_ascii=False)
 
-    # Git commit simbólico
+    # Commit simbólico en Git
     try:
         subprocess.run(["git", "add", LOG_PATH], check=True)
         subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
@@ -49,15 +52,10 @@ def handle_message():
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
-    file = request.files.get("file")
+    file = request.files["file"]
     if file:
         file_id, file_url = upload_file_to_drive(file)
-        log_message({
-            "type": "file",
-            "filename": file.filename,
-            "file_id": file_id,
-            "file_url": file_url
-        })
+        log_message({"type": "file", "filename": file.filename, "file_id": file_id})
         return jsonify({"file_id": file_id, "file_url": file_url})
     return jsonify({"error": "No se recibió archivo"}), 400
 
