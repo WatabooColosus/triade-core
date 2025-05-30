@@ -18,30 +18,24 @@ TEMP_PATH = os.path.join(DATA_PATH, "temp")
 os.makedirs(DATA_PATH, exist_ok=True)
 os.makedirs(TEMP_PATH, exist_ok=True)
 
-# Función: Registro simbólico en archivo y Git
-def log_message(message_data):
-    # Cargar mensajes existentes
-    if os.path.exists(LOG_PATH):
-        with open(LOG_PATH, "r") as f:
-            messages = json.load(f)
-    else:
-        messages = []
-
-    messages.append({
+# Función para registrar interacciones simbólicas y hacer commit
+def log_message(content):
+    log_entry = {
         "timestamp": datetime.now().isoformat(),
-        "data": message_data
-    })
+        "content": content
+    }
 
-    with open(LOG_PATH, "w") as f:
-        json.dump(messages, f, indent=2)
+    with open(LOG_PATH, "a") as f:
+        f.write(json.dumps(log_entry, indent=4) + ",\n")
 
-    # Intentar subir a Git si es parte del repositorio
+    # Configurar Git y registrar
     try:
-        repo = git.Repo(search_parent_directories=True)
-        repo.index.add([LOG_PATH])
-        repo.index.commit("✍ Registro simbólico actualizado")
-    except Exception as e:
-        print(f"[GIT ERROR] {e}")
+        subprocess.run(["git", "config", "--global", "user.email", "triade@wataboo.ai"], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", "Tríade Wataboo"], check=True)
+        subprocess.run(["git", "add", LOG_PATH], check=True)
+        subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
+    except subprocess.CalledProcessError as e:
+        print("[GIT ERROR]", e)
 
 # Ruta: raíz simple
 @app.route("/")
