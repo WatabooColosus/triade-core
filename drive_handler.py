@@ -1,25 +1,34 @@
 # === backend/drive_handler.py ===
+import os
+import json
+import io
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from google.oauth2 import service_account
-import io
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-CREDENTIALS_PATH = '../credentials/credentials.json'
 
-# 👉 Aquí se hace la autenticación con Google Drive
-credentials = service_account.Credentials.from_service_account_file(
-    CREDENTIALS_PATH, scopes=SCOPES)
+# Carga de credenciales desde variable de entorno (Render)
+google_creds_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
+google_creds_dict = json.loads(google_creds_str)
+
+credentials = service_account.Credentials.from_service_account_info(
+    google_creds_dict,
+    scopes=SCOPES
+)
 
 drive_service = build('drive', 'v3', credentials=credentials)
 
+# Puedes definir una carpeta de destino en Drive aquí
+FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")  # opcional
+
 def upload_file_to_drive(file):
-    # Carga del archivo a carpeta específica (puedes definir FOLDER_ID)
     file_metadata = {
         'name': file.filename,
-        # 👉 Si quieres subir a carpeta específica, descomenta y coloca el ID:
-        # 'parents': ['TU_FOLDER_ID_AQUÍ']
     }
+    if FOLDER_ID:
+        file_metadata['parents'] = [FOLDER_ID]
+
     media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype=file.mimetype)
     uploaded_file = drive_service.files().create(
         body=file_metadata,
