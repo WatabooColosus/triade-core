@@ -7,7 +7,9 @@ import os
 import subprocess
 from datetime import datetime
 
+log_message({"type": "sistema", "message": "🟢 Tríade inició correctamente en Render"})
 app = Flask(__name__)
+
 CORS(app)  # Habilita acceso desde dominios externos (como Hostinger)
 
 LOG_PATH = "../data/triade_log.json"
