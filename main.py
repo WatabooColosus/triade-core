@@ -1,81 +1,76 @@
+# === backend/main.py ===
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from drive_handler import upload_file_to_drive
-import os
+from googleapiclient.http import MediaFileUpload
 import json
-import git
+import os
+import subprocess
 from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-# Rutas internas
-DATA_PATH = "data"
-LOG_PATH = os.path.join(DATA_PATH, "triade_log.json")
-TEMP_PATH = os.path.join(DATA_PATH, "temp")
+LOG_PATH = "triade_log.json"
 
-# Asegurar carpetas necesarias
-os.makedirs(DATA_PATH, exist_ok=True)
-os.makedirs(TEMP_PATH, exist_ok=True)
-
-# Función para registrar interacciones simbólicas y hacer commit
+# Función para registrar mensaje/archivo y hacer commit automático a Git
 def log_message(content):
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "content": content
     }
+    if os.path.exists(LOG_PATH):
+        with open(LOG_PATH, "r+") as f:
+            data = json.load(f)
+            data.append(log_entry)
+            f.seek(0)
+            json.dump(data, f, indent=4)
+    else:
+        with open(LOG_PATH, "w") as f:
+            json.dump([log_entry], f, indent=4)
 
-    with open(LOG_PATH, "a") as f:
-        f.write(json.dumps(log_entry, indent=4) + ",\n")
-
-    # Configurar Git y registrar
     try:
-        subprocess.run(["git", "config", "--global", "user.email", "triade@wataboo.ai"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "Tríade Wataboo"], check=True)
         subprocess.run(["git", "add", LOG_PATH], check=True)
         subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
     except subprocess.CalledProcessError as e:
         print("[GIT ERROR]", e)
 
-# Ruta: raíz simple
-@app.route("/")
-def index():
-    return "🧠 Tríade Core API activa"
-
-# Ruta: procesamiento de mensajes y archivos
 @app.route("/api/message", methods=["POST"])
 def handle_message():
-    if "file" in request.files:
-        file = request.files["file"]
-        file_id, file_url = upload_file_to_drive(file)
-        log_message({"type": "archivo", "filename": file.filename, "url": file_url})
-        return jsonify({"status": "archivo subido", "url": file_url})
-
-    data = request.get_json()
+    data = request.json
     message = data.get("message", "")
+    log_message({"type": "text", "message": message})
 
-    # Guardar como archivo de texto temporal
     filename = f"mensaje_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    filepath = os.path.join(TEMP_PATH, filename)
+    filepath = os.path.join("/tmp", filename)
     with open(filepath, "w") as f:
         f.write(message)
 
-    # Crear archivo temporal simulando file-like object
-    class TempFile:
-        def __init__(self, path, name):
-            self.path = path
-            self.filename = name
-            self.mimetype = "text/plain"
-        def read(self):
-            with open(self.path, "rb") as f:
-                return f.read()
+    media = MediaFileUpload(filepath, resumable=True)
+    upload_file_to_drive(filepath, filename, media)
 
-    upload_file_to_drive(TempFile(filepath, filename))
-    log_message({"type": "texto", "contenido": message})
+    return jsonify({"response": f"He recibido tu mensaje y lo he guardado como '{filename}'"})
 
-    return jsonify({"status": "mensaje recibido", "contenido": message})
+@app.route("/api/upload", methods=["POST"])
+def upload_file():
+    file = request.files["file"]
+    if file:
+        filepath = os.path.join("/tmp", file.filename)
+        file.save(filepath)
+        media = MediaFileUpload(filepath, resumable=True)
+        upload_file_to_drive(filepath, file.filename, media)
+        log_message({"type": "file", "filename": file.filename})
+        return jsonify({"message": f"Archivo '{file.filename}' subido exitosamente"})
+    return jsonify({"error": "No se recibió archivo"}), 400
 
-# Arranque local (opcional)
+@app.route("/api/status", methods=["GET"])
+def status():
+    return jsonify({
+        "status": "activo",
+        "triade": "conectada",
+        "dominio_frontend": "https://tiendaxiaomi.online",
+        "dominio_backend": "https://triade-core.onrender.com"
+    })
+
 if __name__ == "__main__":
-    print("🚀 Servidor Flask ejecutándose en local")
     app.run(debug=True)
