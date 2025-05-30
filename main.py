@@ -1,4 +1,5 @@
-# Wataboo·TRÍADE·Ω — main.py
+# Wataboo·TRÍADE·Ω — Backend Main
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from drive_handler import upload_file_to_drive
@@ -7,48 +8,58 @@ import os
 import subprocess
 from datetime import datetime
 
-
-
 app = Flask(__name__)
 CORS(app)
 
 LOG_PATH = "data/triade_log.json"
-os.makedirs("data", exist_ok=True)  # Asegura la carpeta
+os.makedirs("data", exist_ok=True)  # Asegura carpeta interna
+os.makedirs("temp", exist_ok=True)  # Para archivos de texto simbólicos
 
-# Función para registrar interacciones simbólicas y hacer commit
 def log_message(content):
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "content": content
     }
+    if os.path.exists(LOG_PATH):
+        with open(LOG_PATH, "r+", encoding="utf-8") as f:
+            data = json.load(f)
+            data.append(log_entry)
+            f.seek(0)
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    else:
+        with open(LOG_PATH, "w", encoding="utf-8") as f:
+            json.dump([log_entry], f, indent=4, ensure_ascii=False)
 
-    with open(LOG_PATH, "a") as f:
-        f.write(json.dumps(log_entry, indent=4) + ",\n")
-
-    # Configurar Git y registrar
+    # Intentar hacer commit simbólico (solo si está dentro del repo)
     try:
-        subprocess.run(["git", "config", "--global", "user.email", "agenciadigitalwataboo@gmail.com"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "WatabooColosus"], check=True)
         subprocess.run(["git", "add", LOG_PATH], check=True)
-        subprocess.run(["git", "commit", "-m", "✍ Registro simbólico actualizado"], check=True)
+        subprocess.run([
+            "git", "-c", "user.name=Triade", "-c", "user.email=triade@wataboo.ai",
+            "commit", "-m", "✍ Registro simbólico actualizado"
+        ], check=True)
     except subprocess.CalledProcessError as e:
         print("[GIT ERROR]", e)
-
-@app.route("/api/files", methods=["GET"])
-def list_files():
-    from os import walk
-    result = []
-    for root, dirs, files in walk("."):
-        for name in files:
-            result.append(os.path.join(root, name))
-    return jsonify(result)
 
 @app.route("/api/message", methods=["POST"])
 def handle_message():
     data = request.json
     message = data.get("message", "")
     log_message({"type": "text", "message": message})
-    return jsonify({"response": f"He recibido tu mensaje: '{message}'"})
+
+    # Crear y subir archivo de texto simbólico
+    filename = f"mensaje_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    filepath = os.path.join("temp", filename)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(message)
+
+    with open(filepath, "rb") as f:
+        class TempFile:
+            filename = filename
+            mimetype = "text/plain"
+            def read(self): return f.read()
+        upload_file_to_drive(TempFile())
+
+    return jsonify({"response": f"Mensaje recibido y archivado: {filename}"})
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
@@ -68,8 +79,15 @@ def status():
         "dominio_backend": "https://triade-core.onrender.com"
     })
 
-# Mensaje inicial simbólico
-log_message({"type": "sistema", "message": "🟢 Tríade inició correctamente en Render"})
+@app.route("/api/files", methods=["GET"])
+def list_files():
+    from os import walk
+    result = []
+    for root, dirs, files in walk("."):
+        for name in files:
+            result.append(os.path.join(root, name))
+    return jsonify(result)
 
 if __name__ == "__main__":
+    log_message({"type": "sistema", "message": "🟢 Tríade inició correctamente en entorno local"})
     app.run(debug=True)
