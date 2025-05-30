@@ -1,0 +1,9 @@
+{
+  "name": "TRÍADE",
+  "version": "1.0",
+  "frontend": "https://tiendaxiaomi.online",
+  "backend": "https://triade-core.onrender.com",
+  "drive_folder_id": "16K22oTxfXYTUjYqzcRqtuMWtZ39V6xEc",
+  "log_file": "../data/triade_log.json",
+  "signature": "Wataboo·TRÍADE·Ω"
+}

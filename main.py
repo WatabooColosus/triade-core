@@ -53,7 +53,12 @@ def upload_file():
 
 @app.route("/api/status", methods=["GET"])
 def status():
-    return jsonify({"status": "activo", "triade": "conectada", "dominio": "https://tiendaxiaomi.online"})
+    return jsonify({
+        "status": "activo",
+        "triade": "conectada",
+        "dominio_frontend": "https://tiendaxiaomi.online",
+        "dominio_backend": "https://triade-core.onrender.com"
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -19,16 +19,14 @@ credentials = service_account.Credentials.from_service_account_info(
 
 drive_service = build('drive', 'v3', credentials=credentials)
 
-# Puedes definir una carpeta de destino en Drive aquí
-FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")  # opcional
+# Carpeta destino fija para Tríade
+FOLDER_ID = "16K22oTxfXYTUjYqzcRqtuMWtZ39V6xEc"
 
 def upload_file_to_drive(file):
     file_metadata = {
         'name': file.filename,
+        'parents': [FOLDER_ID]
     }
-    if FOLDER_ID:
-        file_metadata['parents'] = [FOLDER_ID]
-
     media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype=file.mimetype)
     uploaded_file = drive_service.files().create(
         body=file_metadata,
