@@ -7,12 +7,13 @@ import os
 import subprocess
 from datetime import datetime
 
-log_message({"type": "sistema", "message": "🟢 Tríade inició correctamente en Render"})
 app = Flask(__name__)
-
 CORS(app)  # Habilita acceso desde dominios externos (como Hostinger)
 
 LOG_PATH = "../data/triade_log.json"
+
+# ✅ Asegura que la carpeta exista antes de escribir
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
 # Función para registrar mensaje/archivo y hacer commit automático a Git
 def log_message(content):

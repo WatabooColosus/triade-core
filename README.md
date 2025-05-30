@@ -1,3 +1,4 @@
+# === backend/README.md ===
 # Wataboo·TRÍADE·Ω
 
 ## Proyecto: Interconexión Viva
