@@ -36,6 +36,15 @@ def log_message(data):
     except Exception as e:
         print("[GIT ERROR]", e)
 
+@app.route("/api/files", methods=["GET"])
+def list_files():
+    from os import walk
+    result = []
+    for root, dirs, files in walk("."):
+        for name in files:
+            result.append(os.path.join(root, name))
+    return jsonify(result)
+
 @app.route("/api/message", methods=["POST"])
 def handle_message():
     if "file" in request.files:
