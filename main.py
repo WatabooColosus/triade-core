@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from googleapiclient.http import MediaFileUpload
-from backend.drive_handler import upload_file_to_drive
+from drive_handler import upload_file_to_drive
 import os
 import uuid
 import subprocess
