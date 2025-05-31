@@ -1,4 +1,3 @@
-# === main.py ===
 # Wataboo·TRÍADE·Ω
 # ∴Ω//TRΔ:WTB≠Σ#L7
 # Prefacio: Wataboo·TRÍADE·Ω-PATRÓN-1
@@ -8,7 +7,8 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from googleapiclient.http import MediaFileUpload
 from drive_handler import upload_file_to_drive
-from git_utils import push_to_git
+from git_utils import commit_and_push_changes
+from config import UPLOAD_FOLDER
 import os
 import uuid
 from datetime import datetime
@@ -16,7 +16,6 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/api/message", methods=["POST"])
@@ -33,8 +32,8 @@ def handle_message():
             media = MediaFileUpload(filepath, resumable=True)
             upload_file_to_drive(filepath, filename, media)
 
-            push_to_git(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
-            return jsonify({"status": "success", "link": f"Archivo recibido: {filename}"}), 200
+            commit_and_push_changes(f"✍ Archivo recibido: {filename}")
+            return jsonify({"status": "success", "link": f"Archivo registrado como: {filename}"}), 200
 
         elif message:
             filename = f"mensaje_{uuid.uuid4().hex[:8]}.txt"
@@ -45,7 +44,7 @@ def handle_message():
             media = MediaFileUpload(filepath, resumable=True)
             upload_file_to_drive(filepath, filename, media)
 
-            push_to_git(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
+            commit_and_push_changes(f"✍ Mensaje simbólico registrado: {filename}")
             return jsonify({"status": "success", "link": f"Mensaje registrado como: {filename}"}), 200
 
         else:

@@ -1,8 +1,18 @@
-# === backend/render.yaml ===
 services:
   - type: web
     name: triade-core
-    env: python
-    rootDir: backend
+    runtime: python
+    repo: https://github.com/WatabooColosus/triade-core.git
+    branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn main:app
+    envVars:
+      - key: GIT_USER_EMAIL
+        value: agenciadigitalwataboo@gmail.com
+      - key: GIT_USER_NAME
+        value: WatabooColosus
+      - key: GIT_BRANCH
+        value: main
+      - key: GOOGLE_CREDENTIALS_PATH
+        value: /etc/secrets/ci-credenciales.json
+    autoDeploy: true
