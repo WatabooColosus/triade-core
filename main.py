@@ -1,3 +1,4 @@
+# === main.py ===
 # Wataboo·TRÍADE·Ω
 # ∴Ω//TRΔ:WTB≠Σ#L7
 # Prefacio: Wataboo·TRÍADE·Ω-PATRÓN-1
@@ -7,10 +8,9 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from googleapiclient.http import MediaFileUpload
 from drive_handler import upload_file_to_drive
-from git_utils import git_commit_and_push
+from git_utils import push_to_git
 import os
 import uuid
-import json
 from datetime import datetime
 
 app = Flask(__name__)
@@ -18,20 +18,6 @@ CORS(app)
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def crear_wataboo_json(tipo, archivo):
-    data = {
-        "tipo": tipo,
-        "usuario": "Santiago",
-        "fecha": datetime.utcnow().isoformat(),
-        "token": "Wataboo·TRÍADE·Ω",
-        "archivo": archivo,
-        "accion": "registro"
-    }
-    nombre = f".wataboo_{uuid.uuid4().hex[:6]}.json"
-    ruta = os.path.join(UPLOAD_FOLDER, nombre)
-    with open(ruta, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
 
 @app.route("/api/message", methods=["POST"])
 def handle_message():
@@ -47,8 +33,7 @@ def handle_message():
             media = MediaFileUpload(filepath, resumable=True)
             upload_file_to_drive(filepath, filename, media)
 
-            crear_wataboo_json("archivo", filename)
-            git_commit_and_push(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
+            push_to_git(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
             return jsonify({"status": "success", "link": f"Archivo recibido: {filename}"}), 200
 
         elif message:
@@ -60,8 +45,7 @@ def handle_message():
             media = MediaFileUpload(filepath, resumable=True)
             upload_file_to_drive(filepath, filename, media)
 
-            crear_wataboo_json("mensaje", filename)
-            git_commit_and_push(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
+            push_to_git(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
             return jsonify({"status": "success", "link": f"Mensaje registrado como: {filename}"}), 200
 
         else:
