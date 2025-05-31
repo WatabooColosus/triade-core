@@ -1,85 +1,68 @@
+# Wataboo·TRÍADE·Ω
+# ∴Ω//TRΔ:WTB≠Σ#L7
+# Prefacio: Wataboo·TRÍADE·Ω-PATRÓN-1
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
+from googleapiclient.http import MediaFileUpload
 from drive_handler import upload_file_to_drive
 import os
-import json
-import datetime
-import git
+import uuid
+import subprocess
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-LOG_PATH = os.path.join(os.getcwd(), "triade_log.json")
-UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
+UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-def log_message(data):
-    now = datetime.datetime.now().isoformat()
-    data["timestamp"] = now
-
-    logs = []
-    if os.path.exists(LOG_PATH):
-        with open(LOG_PATH, "r") as f:
-            try:
-                logs = json.load(f)
-            except json.JSONDecodeError:
-                logs = []
-
-    logs.append(data)
-    with open(LOG_PATH, "w") as f:
-        json.dump(logs, f, indent=2)
-
+def safe_git_commit(message):
     try:
-        repo = git.Repo(os.getcwd())
-        repo.git.add(LOG_PATH)
-        repo.git.commit("-m", "✍ Registro simbólico actualizado")
-    except Exception as e:
-        print("[GIT ERROR]", e)
+        subprocess.run(["git", "config", "--global", "user.email", "triade@wataboo.ai"], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", "Tríade"], check=True)
 
-@app.route("/api/files", methods=["GET"])
-def list_files(): 
-    from os import walk
-    result = []
-    for root, dirs, files in walk("."):
-        for name in files:
-            result.append(os.path.join(root, name))
-    return jsonify(result)
+        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "commit", "-m", message], check=True)
+    except subprocess.CalledProcessError as e:
+        print("[GIT ERROR]", e)
 
 @app.route("/api/message", methods=["POST"])
 def handle_message():
-    if "file" in request.files:
-        file = request.files["file"]
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
+    try:
+        file = request.files.get("file")
+        message = request.form.get("message")
 
-        class TempFile:
-            def __init__(self, filepath, filename):
-                self.filepath = filepath
-                self.filename = filename
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
 
-        upload_file_to_drive(TempFile(filepath, file.filename))
-        log_message({"type": "file", "filename": file.filename})
+            media = MediaFileUpload(filepath, resumable=True)
+            upload_file_to_drive(filepath, filename, media)
 
-        return jsonify({"status": "Archivo recibido y enviado a Drive."})
+            safe_git_commit(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
+            return jsonify({"status": "success", "link": f"Archivo recibido: {filename}"}), 200
 
-    elif "message" in request.json:
-        message = request.json["message"]
-        filename = f"mensaje_{datetime.datetime.now().isoformat()}.txt"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        with open(filepath, "w") as f:
-            f.write(message)
+        elif message:
+            filename = f"mensaje_{uuid.uuid4().hex[:8]}.txt"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(message)
 
-        class TempFile:
-            def __init__(self, filepath, filename):
-                self.filepath = filepath
-                self.filename = filename
+            media = MediaFileUpload(filepath, resumable=True)
+            upload_file_to_drive(filepath, filename, media)
 
-        upload_file_to_drive(TempFile(filepath, filename))
-        log_message({"type": "text", "message": message})
+            safe_git_commit(f"✍ Registro simbólico actualizado · {datetime.utcnow().isoformat()}")
+            return jsonify({"status": "success", "link": f"Mensaje registrado como: {filename}"}), 200
 
-        return jsonify({"status": "Mensaje recibido y enviado a Drive."})
+        else:
+            return jsonify({"status": "error", "message": "No se recibió mensaje ni archivo."}), 400
 
-    return jsonify({"error": "No se recibió ni archivo ni mensaje."}), 400
+    except Exception as e:
+        print("[ERROR]", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
