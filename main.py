@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from googleapiclient.http import MediaFileUpload
-from drive_handler import upload_file_to_drive
+from backend.drive_handler import upload_file_to_drive
 import os
 import uuid
 import subprocess
@@ -20,10 +20,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def safe_git_commit(message):
     try:
-        subprocess.run(["git", "config", "--global", "user.email", "triade@wataboo.ai"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "Tríade"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "agenciadigitalwataboo@gmail.com"], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", "WatabooColosus"], check=True)
 
-        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "add", "uploads"], check=True)
         subprocess.run(["git", "commit", "-m", message], check=True)
     except subprocess.CalledProcessError as e:
         print("[GIT ERROR]", e)
