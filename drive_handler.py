@@ -1,32 +1,32 @@
-# === backend/drive_handler.py ===
 import os
 import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 GOOGLE_CREDENTIALS_PATH = "/etc/secrets/ci-credenciales.json"
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+DRIVE_FOLDER_ID = "16K22oTxfXYTUjYqzcRqtuMWtZ39V6xEc"
 
 with open(GOOGLE_CREDENTIALS_PATH, "r") as f:
-    google_creds_dict = json.load(f)
+    creds_dict = json.load(f)
 
 credentials = service_account.Credentials.from_service_account_info(
-    google_creds_dict,
-    scopes=SCOPES
+    creds_dict,
+    scopes=["https://www.googleapis.com/auth/drive.file"],
 )
 
 drive_service = build("drive", "v3", credentials=credentials)
-GOOGLE_FOLDER_ID = "16K22oTxfXYTUjYqzcRqtuMWtZ39V6xEc"
 
-def upload_file_to_drive(filepath, filename, media):
+def upload_file_to_drive(file_obj):
     file_metadata = {
-        "name": filename,
-        "parents": [GOOGLE_FOLDER_ID]
+        "name": file_obj.filename,
+        "parents": [DRIVE_FOLDER_ID],
     }
+    media = MediaFileUpload(file_obj.filepath)
     uploaded_file = drive_service.files().create(
         body=file_metadata,
         media_body=media,
         fields="id, webViewLink"
     ).execute()
-    print("📂 Archivo subido a Drive:", uploaded_file["webViewLink"])
-    return uploaded_file["id"], uploaded_file["webViewLink"]
+
+    print(f"✅ Archivo subido: {uploaded_file.get('webViewLink')}")
